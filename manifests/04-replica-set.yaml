@@ -1,0 +1,20 @@
+apiVersion: mongodb.com/v1
+kind: MongoDB
+metadata:
+  name: my-replica-set
+  namespace: mongodb
+spec:
+  credentials: my-credentials
+  opsManager:
+    configMapRef:
+      name: my-project
+  members: 1
+  version: 7.0.14-ent
+  type: ReplicaSet
+  persistent: true
+  backup:
+    mode: enabled
+  podSpec:
+    persistence:
+      single:
+        storage: 5Gi

@@ -1,0 +1,16 @@
+apiVersion: mongodb.com/v1
+kind: MongoDBUser
+metadata:
+  name: search-sync-source
+  namespace: mongodb
+spec:
+  username: search-sync-source
+  db: admin
+  passwordSecretKeyRef:
+    name: search-sync-source-password
+    key: password
+  mongodbResourceRef:
+    name: my-replica-set
+  roles:
+    - name: searchCoordinator
+      db: admin

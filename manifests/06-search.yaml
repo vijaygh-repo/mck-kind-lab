@@ -1,0 +1,16 @@
+apiVersion: mongodb.com/v1
+kind: MongoDBSearch
+metadata:
+  name: my-replica-set-search
+  namespace: mongodb
+spec:
+  source:
+    mongodbResourceRef:
+      name: my-replica-set
+    username: search-sync-source
+    passwordSecretKeyRef:
+      name: search-sync-source-password
+      key: password
+  persistence:
+    single:
+      storage: 5Gi

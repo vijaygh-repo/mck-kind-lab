@@ -1,0 +1,24 @@
+apiVersion: mongodb.com/v1
+kind: MongoDBOpsManager
+metadata:
+  name: ops-manager
+  namespace: mongodb
+spec:
+  replicas: 1
+  version: 8.0.5
+  adminCredentials: ops-manager-admin
+  externalConnectivity:
+    type: NodePort
+    port: 30080
+  configuration:
+    mms.ignoreInitialUiSetup: "true"
+  applicationDatabase:
+    members: 1
+    version: 7.0.14-ent
+    persistent: true
+    podSpec:
+      persistence:
+        single:
+          storage: 5Gi
+  backup:
+    enabled: true
