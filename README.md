@@ -49,32 +49,31 @@ self-bootstrap a Project/API key headlessly before a human owns the org). Script
 `05-configure-om-project.sh` prints exactly what to click and turns your answers
 into the Secret/ConfigMap the operator needs. Every other step is fully automated.
 
-## Run order
+## Run it (one command)
 
 ```bash
 git clone <this-repo-url>
 cd mck-kind-lab
-chmod +x scripts/*.sh
+chmod +x run-all.sh scripts/*.sh
 
-./scripts/00-install-prereqs.sh        # Docker, kubectl, kind, helm
-# If this is the first time your user was added to the docker group, start a new shell here.
-
-./scripts/01-create-cluster.sh         # kind cluster "mck-lab"
-./scripts/02-install-crds-operator.sh  # MCK 1.12.0 CRDs + operator via Helm
-./scripts/03-create-secrets.sh         # Ops Manager admin bootstrap credentials
-./scripts/04-deploy-opsmanager.sh      # MongoDBOpsManager CR, waits for Running
-
-./scripts/05-configure-om-project.sh   # <-- one manual step, see prompts
-
-./scripts/06-deploy-backup-stores.sh   # oplog-rs + blockstore-rs, patches OM CR backup config
-./scripts/07-deploy-replicaset.sh      # my-replica-set, backup.mode: enabled
-./scripts/08-deploy-search.sh          # search-sync-source user + MongoDBSearch (mongot)
-
-./scripts/09-validate.sh               # consolidated health check of everything above
+./run-all.sh
 ```
 
+This runs every stage in order, automatically re-executes itself under `sg docker`
+if your user was just added to the `docker` group (no manual re-login needed), and
+pauses once for the one step that genuinely requires a few clicks in the Ops
+Manager UI (see below) before continuing on its own.
+
 Total time: roughly 20-40 minutes, dominated by image pulls for Ops Manager,
-AppDB, MongoDB Enterprise, and mongot on first run.
+AppDB, MongoDB Enterprise, and mongot on first run - but it's one command, so
+that time is unattended other than the single prompt.
+
+### Running stage by stage instead
+
+If you want to debug a specific stage, re-run it, or resume after a failure,
+the numbered scripts under `scripts/` are still there and can be run
+individually in order (`00` through `09`); `run-all.sh` is just a thin wrapper
+around them.
 
 ## Accessing the Ops Manager UI
 
@@ -117,6 +116,7 @@ kubectl exec -it my-replica-set-0 -n mongodb -- mongosh --eval \
 ## Repo layout
 
 ```
+run-all.sh                       single entry point, runs scripts/00-09 in order
 kind-config.yaml                 kind cluster definition (NodePort 30080 -> host 8080)
 manifests/
   00-namespace.yaml
