@@ -87,13 +87,27 @@ the numbered scripts under `scripts/` are still there and can be run
 individually in order (`00` through `09`); `run-all.sh` is just a thin wrapper
 around them.
 
-## Accessing the Ops Manager UI
+## Accessing the Ops Manager UI and logging in
 
 `kind-config.yaml` maps container NodePort `30080` to host port `8080`.
 
 - From the EC2 host itself: `http://localhost:8080`
 - From your laptop: `ssh -L 8080:localhost:8080 <user>@<ec2-public-ip>`, then browse
   to `http://localhost:8080` locally.
+
+The login credentials are whatever `03-create-secrets.sh` generated for the
+`ops-manager-admin` Secret (it prints them once when first created, but you can
+always look them up again):
+
+```bash
+kubectl get secret ops-manager-admin -n mongodb -o jsonpath='{.data.Username}' | base64 -d; echo
+kubectl get secret ops-manager-admin -n mongodb -o jsonpath='{.data.Password}' | base64 -d; echo
+```
+
+This is the same account `05-configure-om-project.sh` already had you log in
+with once, mid-run, to create the Organization/Project/API key - so by the
+time `run-all.sh` finishes, this login already works. Use it any time
+afterwards to get back into the UI.
 
 ## Verifying backup is actually working
 
@@ -159,34 +173,8 @@ scripts/
 - MCK 1.12.0 release: https://github.com/mongodb/mongodb-kubernetes/releases/tag/1.12.0
 - MCK 1.12.0 CRDs: https://raw.githubusercontent.com/mongodb/mongodb-kubernetes/refs/tags/1.12.0/public/crds.yaml
 
-## Option B: Ops Manager without Kubernetes (`native-ops-manager-lab.sh`)
+## Other labs
 
-If you don't want K3s/kind/the operator at all, `native-ops-manager-lab.sh` installs
-**Ops Manager 8.0.26 directly on the EC2 host** (rpm install, Amazon Linux
-2023 x86_64) with everything colocated on that single VM:
-
-- A single-node MongoDB replica set as the Ops Manager AppDB
-- Ops Manager itself, bootstrapped headlessly (first user, org, and project are
-  created via the public API - no UI signup step)
-- The MongoDB Automation Agent installed on the same host, deploying:
-  - `oplog-rs` - a 1-node replica set used as the Backup Oplog Store
-  - `my-replica-set` - the 3-node workload replica set
-- Backup uses a **Filesystem Snapshot Store** (a local directory on this VM),
-  not a Blockstore replica set
-
-Run it as root on a fresh EC2 instance:
-
-```bash
-sudo ./native-ops-manager-lab.sh
-```
-
-Everything is scripted end-to-end except one step: enabling the Backup Daemon
-and its Filesystem Snapshot Store the first time is a short Admin UI wizard in
-Ops Manager itself (there's no stable public API for that one-time setup,
-unlike user/org/project bootstrap which does have one). The script prints
-exactly what to click once it finishes; everything before that point -
-AppDB, Ops Manager, the org/project, the Automation Agent, and both replica
-sets - is fully unattended.
-
-Recommended instance size: `m5.xlarge` (4 vCPU / 16 GiB) or larger - AppDB +
-Ops Manager + a 1-node oplog store + a 3-node replica set on one host adds up.
+A non-Kubernetes alternative (Ops Manager installed directly on an EC2 host,
+no operator, filesystem-store backup) lives in a separate repo:
+[native-ops-manager-lab](https://github.com/vijaygh-repo/native-ops-manager-lab).
