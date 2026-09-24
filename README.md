@@ -40,16 +40,7 @@ flowchart TB
 - Outbound internet access (pulls MongoDB Enterprise / Ops Manager / mongot images)
 - No pre-existing Docker/K8s tooling required - `00-install-prereqs.sh` installs everything
 
-## What's a manual step, and why
-
-Everything here is scripted except **one** action: the very first Ops Manager
-Organization, Project, and Programmatic API Key must be created once through the
-Ops Manager UI (this is how Ops Manager itself works - there is no way to
-self-bootstrap a Project/API key headlessly before a human owns the org). Script
-`05-configure-om-project.sh` prints exactly what to click and turns your answers
-into the Secret/ConfigMap the operator needs. Every other step is fully automated.
-
-## Run it (one command)
+## You only ever run one command
 
 ```bash
 git clone <this-repo-url>
@@ -59,14 +50,35 @@ chmod +x run-all.sh scripts/*.sh
 ./run-all.sh
 ```
 
-This runs every stage in order, automatically re-executes itself under `sg docker`
-if your user was just added to the `docker` group (no manual re-login needed), and
-pauses once for the one step that genuinely requires a few clicks in the Ops
-Manager UI (see below) before continuing on its own.
+That's it - you never run any of the `scripts/00`...`09` files yourself.
+`run-all.sh` calls every one of them for you, in order, in a single unattended
+run. You just watch the terminal.
 
 Total time: roughly 20-40 minutes, dominated by image pulls for Ops Manager,
-AppDB, MongoDB Enterprise, and mongot on first run - but it's one command, so
-that time is unattended other than the single prompt.
+AppDB, MongoDB Enterprise, and mongot on first run.
+
+## The one point where the terminal will stop and wait for you
+
+Everything is automated except one unavoidable fact: Ops Manager itself has no
+headless way to create its very first Organization, Project, and Programmatic
+API Key - a human has to click those into existence once, in the Ops Manager
+UI, before any project can be automated.
+
+You do not need to remember when to do this or run anything extra for it.
+Partway through `./run-all.sh`, the script itself will:
+
+1. Print a boxed banner in your terminal telling you the 6 clicks to make in
+   the Ops Manager UI (URL, login, create org, create project, create API key).
+2. Stop and wait (`read`) for you to paste back 4 values: Organization ID,
+   Project name, Public Key, Private Key.
+3. Automatically continue with the remaining steps as soon as you hit Enter.
+
+There is no timeout - it will sit there waiting for as long as you need. If you
+walk away, `run-all.sh` will just be paused at that prompt when you come back.
+
+`run-all.sh` also transparently handles one other wrinkle: if this is a brand
+new EC2 host and your user was just added to the `docker` group, it re-executes
+itself under `sg docker` automatically so you don't have to log out/in.
 
 ### Running stage by stage instead
 
@@ -113,6 +125,8 @@ kubectl exec -it my-replica-set-0 -n mongodb -- mongosh --eval \
 ./scripts/99-cleanup.sh   # prompts for confirmation, deletes the kind cluster
 ```
 
+This is the one other script you'd run by hand - only when you're done with the lab.
+
 ## Repo layout
 
 ```
@@ -132,7 +146,7 @@ scripts/
   02-install-crds-operator.sh
   03-create-secrets.sh
   04-deploy-opsmanager.sh
-  05-configure-om-project.sh     one manual step lives here
+  05-configure-om-project.sh     called automatically by run-all.sh; pauses for UI-created org/project/API key
   06-deploy-backup-stores.sh
   07-deploy-replicaset.sh
   08-deploy-search.sh
